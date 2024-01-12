@@ -58,9 +58,12 @@ gold: trimmed mean 148.62686811836, raw times 135.07810498436,132.51477470936,15
   Time (mean ± σ):     151.625 s ± 19.106 s    [User: 736.701 s, System: 92.221 s]
   Range (min … max):   132.515 s … 179.728 s    5 runs
 
-### Attempt 2: TreeMap Only
+### Attempt 2: TreeMap Only (170s)
 Instead of using a HashMap for phase 1, I only use a tree map to avoid any possible data copying in attempt #1 (this should be slower than attempt #1 if attempt #1 doesn't copy mem). 
 
+trimmed mean 170.1937195574, raw times 189.4966074274,162.7418106614,166.5204620374,175.3277864294,168.7329102054
+  Time (mean ± σ):     172.564 s ± 10.512 s    [User: 1202.141 s, System: 93.774 s]
+  Range (min … max):   162.742 s … 189.497 s    5 runs
 
 # Running Steps
 1. Run `./mvnw clean verify` -- To clean and validate machine is setup with dependencies installed

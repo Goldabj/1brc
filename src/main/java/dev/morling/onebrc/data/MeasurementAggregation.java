@@ -40,7 +40,7 @@ public class MeasurementAggregation {
      * Adds a value to the aggregation. 
      * @param value -- a measurement
      */
-    public void appendValue(double value) {
+    public synchronized void appendValue(double value) {
         this.min = Math.min(this.min, value);
         this.max = Math.max(this.max, value);
         this.sum += value;

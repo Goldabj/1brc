@@ -19,8 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
 
 import dev.morling.onebrc.data.MeasurementAggregation;
@@ -37,8 +36,7 @@ public class CalculateAverage_gold {
 
     public static void main(String[] args) throws IOException {
         // use a Map since insertion/contains is going to happen K times. Laster we need ordering which is NlgN
-        // TODO: See what happens if we just get a ConcurrentTreeMap instead (compare the runtimes)
-        final Map<String, MeasurementAggregation> aggregates = new ConcurrentHashMap<>();
+        final Map<String, MeasurementAggregation> aggregates = new ConcurrentSkipListMap<>();
 
         try (final Stream<String> lines = Files.lines(Paths.get(FILE))) {
             lines.parallel().forEach(l -> {
@@ -57,9 +55,7 @@ public class CalculateAverage_gold {
 
         // TODO: would it be more effiencent to use a map and collection pattern instead of the forEach?
 
-        // now use a TreeMap to build the ordering of the hashMap in NlgN time
-        final Map<String, MeasurementAggregation> aggregatesSorted = new TreeMap<>(aggregates);
-        System.out.println(aggregatesSorted);
+        System.out.println(aggregates);
     }
 }
 
