@@ -44,9 +44,22 @@
 
 # Measurements
 
-Baseline: trimmed mean 222.9716984409, raw times 227.66400283890002,229.86083345490002,217.08589802490002,222.8427728979,218.40831958590002
+### Baseline (222s)
+Trimmed mean 222.9716984409, raw times 227.66400283890002,229.86083345490002,217.08589802490002,222.8427728979,218.40831958590002
   Time (mean ± σ):     223.172 s ±  5.585 s    [User: 212.036 s, System: 9.526 s]
   Range (min … max):   217.086 s … 229.861 s    5 runs
+
+
+### Attempt 1: Parallel lines (148s)
+Here I used a HashMap to create a set of aggregates per station. Then I kicked of parallel threads to read lines of the file and update the concurrent hash map. Finally, I 
+convert the HashMap to a TreeMap for sorting the output an printing. 
+
+gold: trimmed mean 148.62686811836, raw times 135.07810498436,132.51477470936,154.21658353636002,156.58591583436,179.72795190536002
+  Time (mean ± σ):     151.625 s ± 19.106 s    [User: 736.701 s, System: 92.221 s]
+  Range (min … max):   132.515 s … 179.728 s    5 runs
+
+### Attempt 2: TreeMap Only
+Instead of using a HashMap for phase 1, I only use a tree map to avoid any possible data copying in attempt #1 (this should be slower than attempt #1 if attempt #1 doesn't copy mem). 
 
 
 # Running Steps

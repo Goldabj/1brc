@@ -15,77 +15,53 @@
  */
 package dev.morling.onebrc;
 
-import static java.util.stream.Collectors.groupingBy;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.stream.Collector;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
+
+import dev.morling.onebrc.data.MeasurementAggregation;
 
 public class CalculateAverage_gold {
 
     private static final String FILE = "./measurements.txt";
 
-    private static record Measurement(String station, double value) {
-        private Measurement(String[] parts) {
-            this(parts[0], Double.parseDouble(parts[1]));
-        }
+  private static record Measurement(String station, double value) {
+    private Measurement(String[] parts) {
+      this(parts[0], Double.parseDouble(parts[1]));
     }
-
-    private static record ResultRow(double min, double mean, double max) {
-        public String toString() {
-            return round(min) + "/" + round(mean) + "/" + round(max);
-        }
-
-        private double round(double value) {
-            return Math.round(value * 10.0) / 10.0;
-        }
-    };
-
-    private static class MeasurementAggregator {
-        private double min = Double.POSITIVE_INFINITY;
-        private double max = Double.NEGATIVE_INFINITY;
-        private double sum;
-        private long count;
-    }
+  }
 
     public static void main(String[] args) throws IOException {
-        // Map<String, Double> measurements1 = Files.lines(Paths.get(FILE))
-        // .map(l -> l.split(";"))
-        // .collect(groupingBy(m -> m[0], averagingDouble(m -> Double.parseDouble(m[1]))));
-        //
-        // measurements1 = new TreeMap<>(measurements1.entrySet()
-        // .stream()
-        // .collect(toMap(e -> e.getKey(), e -> Math.round(e.getValue() * 10.0) / 10.0)));
-        // System.out.println(measurements1);
+        // use a Map since insertion/contains is going to happen K times. Laster we need ordering which is NlgN
+        // TODO: See what happens if we just get a ConcurrentTreeMap instead (compare the runtimes)
+        final Map<String, MeasurementAggregation> aggregates = new ConcurrentHashMap<>();
 
-        Collector<Measurement, MeasurementAggregator, ResultRow> collector = Collector.of(
-                MeasurementAggregator::new,
-                (a, m) -> {
-                    a.min = Math.min(a.min, m.value);
-                    a.max = Math.max(a.max, m.value);
-                    a.sum += m.value;
-                    a.count++;
-                },
-                (agg1, agg2) -> {
-                    var res = new MeasurementAggregator();
-                    res.min = Math.min(agg1.min, agg2.min);
-                    res.max = Math.max(agg1.max, agg2.max);
-                    res.sum = agg1.sum + agg2.sum;
-                    res.count = agg1.count + agg2.count;
+        try (final Stream<String> lines = Files.lines(Paths.get(FILE))) {
+            lines.parallel().forEach(l -> {
+                final Measurement measure = new Measurement(l.split(";"));
 
-                    return res;
-                },
-                agg -> {
-                    return new ResultRow(agg.min, agg.sum / agg.count, agg.max);
-                });
+                if (aggregates.containsKey(measure.station)) {
+                    MeasurementAggregation aggregation = aggregates.get(measure.station);
+                    aggregation.appendValue(measure.value);
+                    // don't need to insert since we are using the same object reference
+                    return;
+                }
+                MeasurementAggregation aggregation = new MeasurementAggregation(measure.value);
+                aggregates.put(measure.station, aggregation);
+            });
+        }
 
-        Map<String, ResultRow> measurements = new TreeMap<>(Files.lines(Paths.get(FILE))
-                .map(l -> new Measurement(l.split(";")))
-                .collect(groupingBy(m -> m.station(), collector)));
+        // TODO: would it be more effiencent to use a map and collection pattern instead of the forEach?
 
-        System.out.println(measurements);
+        // now use a TreeMap to build the ordering of the hashMap in NlgN time
+        final Map<String, MeasurementAggregation> aggregatesSorted = new TreeMap<>(aggregates);
+        System.out.println(aggregatesSorted);
     }
 }
+
+// Attempt #1: Just parrallelize with HashMap and TreeMap
+// Attempt #2: parrallel with TreeMap only.
