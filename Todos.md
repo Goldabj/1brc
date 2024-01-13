@@ -59,8 +59,9 @@ Lowering the size of the chunks to hopefully increase parrallel tasks under the 
 There is some duplicate work in Attempt4 where I read a ByteBuffer line into a String, then later I split that string. 
 Line splitting is likley to be slow and creates two new String objects, so a possible increase in GC.
 
-## Attempt 6: Remove Concurrent Data Structure
-Remove concurrent data structure to remove any possible locking overhead
+## Attempt 6: Remove Concurrent Data Structure (44s)
+Remove concurrent data structure to remove any possible locking overhead. This is done by creating an aggregate per chunk (per thread). 
+Then having a single threaded collector to combine all the chunks AggregateMaps into a single Map. 
 
 
 ## 100M Rows Times
@@ -68,6 +69,7 @@ Remove concurrent data structure to remove any possible locking overhead
 * Attempt3: 9.15s
 * Attempt4: 8.75s
 * Attempt5: 7.65s
+* Attempt6: 4.76s
 
 ### BaseLine (100M Rows)
 

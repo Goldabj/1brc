@@ -18,12 +18,14 @@ package dev.morling.onebrc;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -44,37 +46,51 @@ public class CalculateAverage_gold {
         // Page size is 16KB. MMap will allocate a page of mem on each reach. Therefore
         // this is the max parallel throughput we get
         // without duplicating mmap calls.
-        final Long macPageSize = 1024 * 1024 * 10L; // 16384L;
+        final Long macPageSize = 16384L * 1280;
 
         // use a Map since insertion/contains is going to happen K times. Laster we need
         // ordering which is NlgN
-        final Map<String, MeasurementAggregation> aggregates = new ConcurrentHashMap<>();
-
         final Stream<ByteBuffer> fileChunks = FastFiles.readMMapChunks(Paths.get(FILE), macPageSize);
-        fileChunks
+        final Optional<Map<String, MeasurementAggregation>> aggregates = fileChunks
                 .parallel()
                 .map(CalculateAverage_gold::toMeasureStream)
-                .forEach(measures -> {
-                    measures.forEach(measure -> {
-                        if (aggregates.containsKey(measure.station)) {
-                            MeasurementAggregation aggregation = aggregates.get(measure.station);
-                            aggregation.appendValue(measure.value);
-                            // don't need to insert since we are using the same object reference
-                            return;
-                        }
-                        MeasurementAggregation aggregation = new MeasurementAggregation(measure.value);
-                        aggregates.put(measure.station, aggregation);
-                    });
-                });
+                .map(CalculateAverage_gold::streamToAggregate)
+                .collect(Collectors.reducing(CalculateAverage_gold::combineMaps));
 
-        final Map<String, MeasurementAggregation> aggregationsSorted = new TreeMap<>(aggregates);
+        final Map<String, MeasurementAggregation> aggregationsSorted = new TreeMap<>(aggregates.orElseThrow());
         System.out.println(aggregationsSorted);
     }
 
-    static Stream<Measurement> toMeasureStream(final ByteBuffer buffer) {
+    private static Stream<Measurement> toMeasureStream(final ByteBuffer buffer) {
         return StreamSupport.stream(
                 Spliterators.spliteratorUnknownSize(new MeasurementIterator(buffer), Spliterator.IMMUTABLE),
                 false);
+    }
+
+    private static Map<String, MeasurementAggregation> streamToAggregate(final Stream<Measurement> measures) {
+        final Map<String, MeasurementAggregation> aggregates = new HashMap<>();
+
+        measures.forEach(measure -> {
+            if (aggregates.containsKey(measure.station)) {
+                MeasurementAggregation aggregation = aggregates.get(measure.station);
+                aggregation.appendValue(measure.value);
+                // don't need to insert since we are using the same object reference
+                return;
+            }
+            MeasurementAggregation aggregation = new MeasurementAggregation(measure.value);
+            aggregates.put(measure.station, aggregation);
+        });
+
+        return aggregates;
+    }
+
+    private static Map<String, MeasurementAggregation> combineMaps(Map<String, MeasurementAggregation> map1,
+                                                                   Map<String, MeasurementAggregation> map2) {
+        for (var entry : map2.entrySet()) {
+            map1.merge(entry.getKey(), entry.getValue(), MeasurementAggregation::combine);
+        }
+
+        return map1;
     }
 
     private static class MeasurementIterator implements Iterator<Measurement> {

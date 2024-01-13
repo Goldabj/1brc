@@ -40,11 +40,19 @@ public class MeasurementAggregation {
      * Adds a value to the aggregation. 
      * @param value -- a measurement
      */
-    public synchronized void appendValue(double value) {
+    public void appendValue(double value) {
         this.min = Math.min(this.min, value);
         this.max = Math.max(this.max, value);
         this.sum += value;
         this.count++;
+    }
+
+    public MeasurementAggregation combine(MeasurementAggregation agg) {
+        this.min = Math.min(this.min, agg.min);
+        this.max = Math.max(this.max, agg.max);
+        this.sum += agg.sum;
+        this.count += agg.count;
+        return this;
     }
 
     private double getMean() {
