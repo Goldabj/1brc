@@ -19,7 +19,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import dev.morling.onebrc.data.MeasurementAggregation;
@@ -36,7 +37,7 @@ public class CalculateAverage_gold {
 
     public static void main(String[] args) throws IOException {
         // use a Map since insertion/contains is going to happen K times. Laster we need ordering which is NlgN
-        final Map<String, MeasurementAggregation> aggregates = new ConcurrentSkipListMap<>();
+        final Map<String, MeasurementAggregation> aggregates = new ConcurrentHashMap<>();
 
         try (final Stream<String> lines = Files.lines(Paths.get(FILE))) {
             lines.parallel().forEach(l -> {
@@ -54,10 +55,11 @@ public class CalculateAverage_gold {
         }
 
         // TODO: would it be more effiencent to use a map and collection pattern instead of the forEach?
-
-        System.out.println(aggregates);
+        final Map<String, MeasurementAggregation> aggregationsSorted = new TreeMap<>(aggregates);
+        System.out.println(aggregationsSorted);
     }
 }
 
 // Attempt #1: Just parrallelize with HashMap and TreeMap
 // Attempt #2: parrallel with TreeMap only.
+// TODO: Attempt #3: Using Java NIO to create a memory mapped file -- Actually Files.lines( looks like it already does this under the hoods if the stream is parrallel)

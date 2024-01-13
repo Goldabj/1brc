@@ -44,19 +44,20 @@
 
 # Measurements
 
-### Baseline (222s)
-Trimmed mean 222.9716984409, raw times 227.66400283890002,229.86083345490002,217.08589802490002,222.8427728979,218.40831958590002
-  Time (mean ± σ):     223.172 s ±  5.585 s    [User: 212.036 s, System: 9.526 s]
-  Range (min … max):   217.086 s … 229.861 s    5 runs
+### Baseline (206)
+  Time (mean ± σ):     204.356 s ± 25.376 s    [User: 200.193 s, System: 5.418 s]
+  Range (min … max):   175.684 s … 227.663 s    5 runs
+ 
+trimmed mean 206.14489288182665, raw times 226.53323922916,227.66301560416,212.93984956216,175.68379439615998,178.96158985416
 
 
-### Attempt 1: Parallel lines (148s)
+### Attempt 1: Parallel lines (131s)
 Here I used a HashMap to create a set of aggregates per station. Then I kicked of parallel threads to read lines of the file and update the concurrent hash map. Finally, I 
 convert the HashMap to a TreeMap for sorting the output an printing. 
 
-gold: trimmed mean 148.62686811836, raw times 135.07810498436,132.51477470936,154.21658353636002,156.58591583436,179.72795190536002
-  Time (mean ± σ):     151.625 s ± 19.106 s    [User: 736.701 s, System: 92.221 s]
-  Range (min … max):   132.515 s … 179.728 s    5 runs
+trimmed mean 131.23458795724, raw times 136.88126547124,124.49179542924,130.37334217923998,127.95388647124001,135.37653522124
+  Time (mean ± σ):     131.015 s ±  5.142 s    [User: 622.112 s, System: 65.222 s]
+  Range (min … max):   124.492 s … 136.881 s    5 runs
 
 ### Attempt 2: TreeMap Only (170s)
 Instead of using a HashMap for phase 1, I only use a tree map to avoid any possible data copying in attempt #1 (this should be slower than attempt #1 if attempt #1 doesn't copy mem). 
