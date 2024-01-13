@@ -45,26 +45,29 @@ trimmed mean 170.1937195574, raw times 189.4966074274,162.7418106614,166.5204620
   Time (mean ± σ):     172.564 s ± 10.512 s    [User: 1202.141 s, System: 93.774 s]
   Range (min … max):   162.742 s … 189.497 s    5 runs
 
-### Attempt 3: MMapping files with 64MB Chunks (274s)
+### Attempt 3: MMapping files with 64MB Chunks (91s)
 This builds on attempt #1. But instead of using a BufferedReader which performs a sys `read` call for each page size, this uses mmap files for reading
 the file in 64MB chunks
 
-trimmed mean 274.99685333326005, raw times 275.52675458326,276.96032483326,261.12839404126004,272.50348058326,278.45399045826
-  Time (mean ± σ):     272.915 s ±  6.945 s    [User: 241.940 s, System: 12.080 s]
-  Range (min … max):   261.128 s … 278.454 s    5 runs
-
-I'm assuming this is slower, since the chunks are too large and I'm not taking advantage of parrallel execution fully?
-
-### Attempt 4: MMapping files with 16KB Chunks 
 
 
+### Attempt 4: MMapping files with 16KB Chunks (87s)
+Lowering the size of the chunks to hopefully increase parrallel tasks under the hoods. 
 
+
+### Attempt 5: Remove line splitting (76s)
+There is some duplicate work in Attempt4 where I read a ByteBuffer line into a String, then later I split that string. 
+Line splitting is likley to be slow and creates two new String objects, so a possible increase in GC.
+
+## Attempt 6: Remove Concurrent Data Structure
+Remove concurrent data structure to remove any possible locking overhead
 
 
 ## 100M Rows Times
 * Baseline: 22.6s
-* Attempt4: 24.5s
-* 
+* Attempt3: 9.15s
+* Attempt4: 8.75s
+* Attempt5: 7.65s
 
 ### BaseLine (100M Rows)
 

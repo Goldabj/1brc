@@ -165,7 +165,7 @@ public class FastFiles {
 
         @Override
         public String next() {
-            final byte[] bytes = new byte[128];
+            final byte[] bytes = new byte[48];
 
             int currentLineIdx = 0;
             while (currentLineIdx + this.currentIdx < this.maxSize) {
