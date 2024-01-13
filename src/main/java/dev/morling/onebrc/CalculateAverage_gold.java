@@ -16,7 +16,7 @@
 package dev.morling.onebrc;
 
 import java.io.IOException;
-import java.nio.file.Files;
+import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.TreeMap;
@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import dev.morling.onebrc.data.MeasurementAggregation;
+import dev.morling.onebrc.files.FastFiles;
 
 public class CalculateAverage_gold {
 
@@ -36,11 +37,18 @@ public class CalculateAverage_gold {
   }
 
     public static void main(String[] args) throws IOException {
+        // Page size is 16KB. MMap will allocate a page of mem on each reach. Therefore this is the max parallel throughput we get
+        // without duplicating mmap calls.
+        final Long macPageSize = 16384L;
+
         // use a Map since insertion/contains is going to happen K times. Laster we need ordering which is NlgN
         final Map<String, MeasurementAggregation> aggregates = new ConcurrentHashMap<>();
 
-        try (final Stream<String> lines = Files.lines(Paths.get(FILE))) {
-            lines.parallel().forEach(l -> {
+        final Stream<ByteBuffer> fileChunks = FastFiles.readMMapChunks(Paths.get(FILE), macPageSize);
+        fileChunks.forEach(chunk -> {
+
+            final Stream<String> lines = FastFiles.lines(chunk);
+            lines.forEach(l -> {
                 final Measurement measure = new Measurement(l.split(";"));
 
                 if (aggregates.containsKey(measure.station)) {
@@ -52,9 +60,8 @@ public class CalculateAverage_gold {
                 MeasurementAggregation aggregation = new MeasurementAggregation(measure.value);
                 aggregates.put(measure.station, aggregation);
             });
-        }
+        });
 
-        // TODO: would it be more effiencent to use a map and collection pattern instead of the forEach?
         final Map<String, MeasurementAggregation> aggregationsSorted = new TreeMap<>(aggregates);
         System.out.println(aggregationsSorted);
     }
@@ -62,4 +69,8 @@ public class CalculateAverage_gold {
 
 // Attempt #1: Just parrallelize with HashMap and TreeMap
 // Attempt #2: parrallel with TreeMap only.
-// TODO: Attempt #3: Using Java NIO to create a memory mapped file -- Actually Files.lines( looks like it already does this under the hoods if the stream is parrallel)
+// Attempt #3: Using Java NIO to create a memory mapped file when reading the file by mapping 64mB chunks.
+
+// TODO: Attemp #4: Make smaller file chunks that align with my page size
+// TODO: Attempt #5: Create chunks based on the number of available processors
+// TODO: Attemp #6: instead of parralle() try virtual threads

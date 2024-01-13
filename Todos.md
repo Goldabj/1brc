@@ -2,43 +2,22 @@
 
 1. Use Java Virtual Threads to read the file in chunks
 
-2. Put all the station measurements into some queue structure where all the measurements for a single company are located in teh same memory page. 
-  * Actually we need just the min, max, and mean. So we can calculate a running min, max, count, and sum for each line that we process. 
-  * As a optimization, we will need to think of a way to limit that amount of contention (locks) while updating per company. 
-
 3. Then create a virtual thread per station (keyspace) to compute the measurements for each company? 
-
-4. Can we use Java NIO Channels with ByteBuffers to optimize reading? 
-  ```
-  FileChannel channel = file.getChannel();
-  ByteBuffer buffer = ByteBuffer.allocate(1024); // bytes (max is 2 GBs)
-
-  int bytesREad = channel.read(bufer);
-
-  // do sometihng with the buffer. 
-
-  buffer.clear();
-  file.close();
-  ```
 
 
 # Goal
-[] Just get the program to Run
+[X] Just get the program to Run
 [] Use a flame graph or any other tools to profile the code to see what pieces are taking the longest. 
-[] Run the time cli command to measure too?? 
+[X] Run the time cli command to measure too?? 
 [] Learn how to use virtual threads. 
 [] Learn how to use SIMD
-[] Learn about Java MMapped files? What are these? 
-[] Get Familar with Java's File API. 
+[X] Learn about Java MMapped files? What are these? 
+[X] Get Familar with Java's File API. 
 [] Can we measure when GC is happening with Java? 
-[] What is a concurrentSkipListMap? What is a treeMap? 
+[X] What is a concurrentSkipListMap? What is a treeMap? 
+[] Can we do any Java GC or Heap Size optimization? 
+[] How can we profile the app with sys calls to see whats taking the longest
 
-
-
-# Thoughts
-1. Think about how the OS is involved to read files from Disk. How can we optimize that loading -- maybe limit system calls to to do this, and instead use a user space mmap? 
-2. Does IORing help with any of this? 
-3. Can we do any Java GC and Heap size optimizations? 
 
 
 
@@ -65,6 +44,31 @@ Instead of using a HashMap for phase 1, I only use a tree map to avoid any possi
 trimmed mean 170.1937195574, raw times 189.4966074274,162.7418106614,166.5204620374,175.3277864294,168.7329102054
   Time (mean ± σ):     172.564 s ± 10.512 s    [User: 1202.141 s, System: 93.774 s]
   Range (min … max):   162.742 s … 189.497 s    5 runs
+
+### Attempt 3: MMapping files with 64MB Chunks (274s)
+This builds on attempt #1. But instead of using a BufferedReader which performs a sys `read` call for each page size, this uses mmap files for reading
+the file in 64MB chunks
+
+trimmed mean 274.99685333326005, raw times 275.52675458326,276.96032483326,261.12839404126004,272.50348058326,278.45399045826
+  Time (mean ± σ):     272.915 s ±  6.945 s    [User: 241.940 s, System: 12.080 s]
+  Range (min … max):   261.128 s … 278.454 s    5 runs
+
+I'm assuming this is slower, since the chunks are too large and I'm not taking advantage of parrallel execution fully?
+
+### Attempt 4: MMapping files with 16KB Chunks 
+
+
+
+
+
+## 100M Rows Times
+* Baseline: 22.6s
+* Attempt4: 24.5s
+* 
+
+### BaseLine (100M Rows)
+
+
 
 # Running Steps
 1. Run `./mvnw clean verify` -- To clean and validate machine is setup with dependencies installed
